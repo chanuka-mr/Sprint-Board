@@ -5,11 +5,6 @@ import { AppError } from "../middleware/error";
 import { AuthRequest } from "../middleware/auth";
 import { getJwtSecret, getJwtExpiresIn } from "../config/env";
 import { validatePasswordStrength } from "../utils/passwordPolicy";
-import {
-  getLoginLock,
-  recordLoginFailure,
-  clearLoginFailures,
-} from "../middleware/rateLimiter";
 
 const JWT_SECRET: string = getJwtSecret();
 const JWT_EXPIRES_IN: SignOptions["expiresIn"] = getJwtExpiresIn() as SignOptions["expiresIn"];
@@ -100,43 +95,16 @@ export const login = async (
       throw new AppError("Email and password are required.", 400);
     }
 
-    const lock = getLoginLock(email);
-    if (lock.locked) {
-      const minutes = Math.max(1, Math.ceil(lock.remainingMs / 60000));
-      throw new AppError(
-        `Too many failed attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
-        429
-      );
-    }
-
     const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
-      const result = recordLoginFailure(email);
-      if (result.locked) {
-        const minutes = Math.max(1, Math.ceil(result.retryAfterMs / 60000));
-        throw new AppError(
-          `Too many failed attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
-          429
-        );
-      }
       throw new AppError("Invalid credentials. Please try again.", 401);
     }
 
     const isPasswordMatch = await user.comparePassword(password);
     if (!isPasswordMatch) {
-      const result = recordLoginFailure(email);
-      if (result.locked) {
-        const minutes = Math.max(1, Math.ceil(result.retryAfterMs / 60000));
-        throw new AppError(
-          `Too many failed attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
-          429
-        );
-      }
       throw new AppError("Invalid credentials. Please try again.", 401);
     }
-
-    clearLoginFailures(email);
 
     const token = signToken(user._id.toString(), user.tokenVersion);
 

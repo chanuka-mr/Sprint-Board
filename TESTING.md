@@ -11,7 +11,7 @@ Manual + automated verification checklist for the security (Phases 1–2) and UX
 
 - **Admin credentials**: read from `backend/.env` (`ADMIN_EMAIL`, `ADMIN_PASSWORD`). Do not commit real credentials.
 - **Test user**: register one via the UI with a strong password (e.g. `TestUser@2026`). The register limiter allows 3/hour/IP — register sparingly; the automated script reuses one user per run.
-- **Rate-limit ordering**: login/register lockout counters are stored in memory. Run the lockout tests **last**, then restart the backend (`npm start`) to clear state so your dev IP isn't blocked.
+- **Register limiter state**: the register limiter (3/hour/IP) is stored in memory. Restart the backend (`npm start`) to clear it if you hit a `429` while testing. Login rate limiting/lockout has been **removed** by request — repeated failed logins never throttle.
 
 ---
 
@@ -23,7 +23,7 @@ Provided separately as a local-only script (`test-api.ps1`, not part of the repo
 C:\Users\jchan\AppData\Local\Temp\opencode\test-api.ps1 -BaseUrl http://localhost:5000
 ```
 
-Reads `ADMIN_EMAIL`/`ADMIN_PASSWORD` from `backend/.env` (or pass `-AdminEmail`/`-AdminPassword`). Covers **P1.1–P1.10** and **P2.1–P2.9** below; prints pass/fail and a summary. Lockout tests run last and the script prints a hint to restart the backend when done.
+Reads `ADMIN_EMAIL`/`ADMIN_PASSWORD` from `backend/.env` (or pass `-AdminEmail`/`-AdminPassword`). Covers **P1.1–P1.10** and **P2.1–P2.9** below; prints pass/fail and a summary.
 
 ---
 
@@ -41,7 +41,7 @@ Verify with the script, or manually with `curl.exe`:
 | P1.6 | Mongo-injection sanitize | POST `/api/tasks` with `{"title": {"$gt": ""}}`; or `GET /api/tasks?status[$ne]=x` | No `$`-operator honored, no data leak, no crash |
 | P1.7 | Malformed JSON | POST `/api/auth/login` with an invalid JSON body | Caught as an error, not a crash loop (see Findings) |
 | P1.8 | Unknown route | `GET /api/nope` | `404` JSON `{ success: false, message: "Route not found..." }` |
-| P1.9 | Login rate limit | 6 rapid bad-login POSTs | 6th → `429` with `RateLimit-Limit: 5`, `RateLimit-Remaining: 0`, `RateLimit-Reset: 900` |
+| P1.9 | No login rate limit | 10 rapid bad-login POSTs | Every attempt returns `401` "Invalid credentials" (login throttling removed by design) |
 | P1.10 | Register rate limit | 4 rapid register POSTs | 4th → `429` "Too many registration attempts" |
 | P1.11 | Env validation | `NODE_ENV=production node dist/server.js` with `JWT_SECRET` unset | Immediate startup throw (test in a scratch dir, not the live env) |
 | P1.12 | Description cap | Create task with >2000-char description | `400` validation error |
@@ -57,8 +57,8 @@ Verify with the script, or manually with `curl.exe`:
 | P2.3 | Valid register | Strong password | `201`, new user can log in |
 | P2.4 | Strong login + session | Admin login → `GET /api/auth/me` with token | `200` "Session verified" (JWT carries `tokenVersion`) |
 | P2.5 | Wrong password | Bad login once | `401` "Invalid credentials" |
-| P2.6 | Per-email lockout | 5 bad logins on one email | 5th → `429` "Too many failed attempts... in 15 minutes" |
-| P2.7 | Lock cleared on success | Correct password later (or after backend restart) | `200` |
+| P2.6 | No per-email lockout | 10 bad logins on one email | Still `401` "Invalid credentials" every time (lockout removed by design) |
+| P2.7 | Lock cleared on success | Correct password later | `200` (always, no lock state) |
 | P2.8 | Token after password rotation | Login → tokenA; run `npm run seed`; call `/me` with tokenA | Still `200` (rotation does not bump `tokenVersion` — see Findings) |
 | P2.9 | Invalidated token (advanced) | Manually bump a user's `tokenVersion` (mongosh), reuse their old token | `401` "Session is no longer valid" |
 | P2.10 | Tampered token | Call `/me` with garbage token | `401` "Invalid token" |
