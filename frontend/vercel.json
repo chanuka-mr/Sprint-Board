@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://sprint-board-backend.onrender.com/api/:path*"
+      "destination": "https://sprint-board-jb8b.onrender.com/api/:path*"
     }
   ],
   "headers": [

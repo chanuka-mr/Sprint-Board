@@ -362,7 +362,7 @@ Errors return the matching HTTP status with `success: false` and, for validation
    - `NEXT_PUBLIC_API_URL=https://<your-backend-url>.onrender.com`
 4. Deploy. The included [`vercel.json`](/frontend/vercel.json) adds CORS headers and an optional `/api/*` rewrite proxy. The backend also enables permissive CORS for cross-origin requests in development.
 
-> **Production note:** the `vercel.json` rewrite destination uses `https://sprint-board-backend.onrender.com/api/:path*` as a placeholder — point it at your real deployed backend URL.
+> **Production note:** the `vercel.json` rewrite destination uses `https://sprint-board-jb8b.onrender.com/api/:path*` — point it at your real deployed backend URL.
 
 ---
 

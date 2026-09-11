@@ -16,13 +16,17 @@ const app: Express = express();
 
 app.set("trust proxy", 1);
 
-const allowedOrigins: string[] = [getFrontendUrl(), "http://localhost:3000"];
+const allowedOrigins: string[] = [getFrontendUrl()];
+
+const isDevLocalOrigin = (origin: string): boolean =>
+  process.env.NODE_ENV !== "production" &&
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 
 app.use(helmet());
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || isDevLocalOrigin(origin)) {
         callback(null, true);
         return;
       }

@@ -112,10 +112,10 @@ Verify with the script, or manually with `curl.exe`:
 
 ## Deployment checks (after `git push` → Vercel + Render)
 
-1. **Render**: env var `FRONTEND_URL=https://sprint-board-umber.vercel.app` set; `GET https://sprint-board-backend.onrender.com/api/health` → `200`; startup logs show the env validation passed.
+1. **Render**: env var `FRONTEND_URL=https://sprint-board-beige.vercel.app` set; `GET https://sprint-board-jb8b.onrender.com/api/health` → `200`; startup logs show the env validation passed. The service must use the build command `npm install --include=dev && npm run build` so dev dependencies (`@types/*`) are installed during the build despite `NODE_ENV=production` (see `backend/render.yaml`).
 2. **One-time logout**: after the backend deploys, previously stored tokens (without `tokenVersion`) are rejected → every user re-logs in once. Verify admin can log in with the new password.
 3. **Vercel**: load the production URL → login → create/edit/delete → toasts, confirm dialog, search/filter, Ctrl+K work; DevTools console has no errors.
-4. **Prod CORS**: browser fetch from the Vercel origin to the Render API returns `Access-Control-Allow-Origin: https://sprint-board-umber.vercel.app`.
+4. **Prod CORS**: browser fetch from the Vercel origin to the Render API returns `Access-Control-Allow-Origin: https://sprint-board-beige.vercel.app`; origins like `http://localhost:3000` and arbitrary sites return no such header (prod allowlist is `FRONTEND_URL` only).
 
 ---
 
