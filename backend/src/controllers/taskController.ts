@@ -240,28 +240,20 @@ export const assignTask = async (
     } else {
       const userId = req.user?._id as mongoose.Types.ObjectId;
 
-      const isCreator = task.createdBy.toString() === userId.toString();
       const isCurrentAssignee =
         task.assignedTo !== null &&
         task.assignedTo.toString() === userId.toString();
 
-      if (!isCreator && !isCurrentAssignee) {
-        throw new AppError(
-          "Not authorized. You can only claim unassigned tasks or manage tasks assigned to you.",
-          403
-        );
-      }
-
       if (task.assignedTo !== null && !isCurrentAssignee) {
         throw new AppError(
-          "This task is already assigned to another user.",
+          "This task is already assigned to another user. You can only claim unassigned tasks or manage tasks assigned to you.",
           403
         );
       }
 
       if (assignedTo === undefined || assignedTo === null || assignedTo === "") {
         throw new AppError(
-          "Normal users can only assign a task to themselves. Use your own user ID.",
+          "Normal users can only assign a task to themselves.",
           403
         );
       }
