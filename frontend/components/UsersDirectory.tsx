@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { Users as UsersIcon, Search, ShieldCheck, User as UserIcon } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Users as UsersIcon, Search, ShieldCheck, User as UserIcon, RefreshCw, AlertTriangle } from "lucide-react";
 import apiClient, {
   ApiResponse,
   AppUser,
@@ -30,26 +30,26 @@ const UsersDirectory = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    const load = async (): Promise<void> => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const [usersRes, tasksRes] = await Promise.all([
-          apiClient.get<ApiResponse<UsersResponse>>("/api/users"),
-          apiClient.get<ApiResponse<TasksResponse>>("/api/tasks"),
-        ]);
-        setUsers(usersRes.data.data.users);
-        setTasks(tasksRes.data.data.tasks);
-      } catch (err) {
-        setError(getErrorMessage(err));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void load();
+  const load = useCallback(async (): Promise<void> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [usersRes, tasksRes] = await Promise.all([
+        apiClient.get<ApiResponse<UsersResponse>>("/api/users"),
+        apiClient.get<ApiResponse<TasksResponse>>("/api/tasks"),
+      ]);
+      setUsers(usersRes.data.data.users);
+      setTasks(tasksRes.data.data.tasks);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const statsByUser = useMemo(() => {
     const stats: Record<string, UserStats> = {};
@@ -117,8 +117,19 @@ const UsersDirectory = () => {
       </div>
 
       {error && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
-          {error}
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-500/30 dark:bg-amber-500/10">
+          <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-600/30 bg-white px-2.5 py-1 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100 dark:bg-board-50 dark:text-amber-300 dark:hover:bg-board-100"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry
+          </button>
         </div>
       )}
 

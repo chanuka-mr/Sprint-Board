@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, PlusCircle, Flag } from "lucide-react";
 import { AppUser, TaskPriority, TaskStatus } from "../lib/api";
 
@@ -8,6 +8,7 @@ interface CreateTaskModalProps {
   users: AppUser[];
   isAdmin: boolean;
   open: boolean;
+  initialStatus?: TaskStatus;
   onClose: () => void;
   onCreate: (payload: {
     title: string;
@@ -22,16 +23,23 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   users,
   isAdmin,
   open,
+  initialStatus = "To Do",
   onClose,
   onCreate,
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("To Do");
+  const [status, setStatus] = useState<TaskStatus>(initialStatus);
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [assignedTo, setAssignedTo] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setStatus(initialStatus);
+    }
+  }, [open, initialStatus]);
 
   if (!open) {
     return null;

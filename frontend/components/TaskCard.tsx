@@ -13,9 +13,11 @@ import {
   GripVertical,
   ShieldCheck,
   Flag,
+  Loader2,
+  ArrowRightLeft,
 } from "lucide-react";
-import { AppUser, Task, TaskPriority } from "../lib/api";
-import { formatDate, getInitials } from "../lib/utils";
+import { AppUser, Task, TaskActionType, TaskPriority, TaskStatus, PendingAction } from "../lib/api";
+import { formatDate, getInitials, timeAgo } from "../lib/utils";
 
 interface TaskCardProps {
   task: Task;
@@ -25,6 +27,7 @@ interface TaskCardProps {
   isDraggable: boolean;
   provided: DraggableProvided;
   snapshot: DraggableStateSnapshot;
+  pendingAction?: PendingAction | null;
   onClaim: (task: Task) => void;
   onAssign: (task: Task, assignedTo: string) => void;
   onEdit: (
@@ -34,6 +37,7 @@ interface TaskCardProps {
     priority: TaskPriority
   ) => void;
   onDelete: (task: Task) => void;
+  onMove: (task: Task, status: TaskStatus) => void;
 }
 
 const statusStyles: Record<string, string> = {
@@ -62,10 +66,12 @@ const TaskCard: React.FC<TaskCardProps> = ({
   isDraggable,
   provided,
   snapshot,
+  pendingAction,
   onClaim,
   onAssign,
   onEdit,
   onDelete,
+  onMove,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
@@ -76,6 +82,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
   const isAssignee = task.assignedTo?._id === currentUser._id;
   const canEditOrDelete = isAdmin || isCreator;
   const canClaim = !isAdmin && !task.assignedTo;
+
+  const isActionPending = (...types: TaskActionType[]): boolean => {
+    if (!pendingAction || pendingAction.id !== task._id) {
+      return false;
+    }
+    return types.includes(pendingAction.type);
+  };
+
+  const handleMoveChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    onMove(task, event.target.value as TaskStatus);
+  };
 
   const handleSaveEdit = () => {
     if (!editTitle.trim()) {
@@ -207,9 +224,17 @@ const TaskCard: React.FC<TaskCardProps> = ({
               </span>
             </span>
           </div>
-          <div className="flex shrink-0 items-center gap-1 text-xs text-board-400">
-            <Calendar className="h-3.5 w-3.5" />
-            <span>{formatDate(task.createdAt)}</span>
+          <div className="flex shrink-0 flex-col items-end gap-0.5">
+            <div className="flex items-center gap-1 text-xs text-board-400">
+              <Calendar className="h-3.5 w-3.5" />
+              <span>{formatDate(task.createdAt)}</span>
+            </div>
+            <span
+              className="text-[10px] leading-none text-board-400"
+              title={`Last updated ${formatDate(task.updatedAt)}`}
+            >
+              Updated {timeAgo(task.updatedAt)}
+            </span>
           </div>
         </div>
 
@@ -247,7 +272,8 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <select
                 value={task.assignedTo?._id || ""}
                 onChange={handleAssignChange}
-                className="max-w-[10rem] rounded-lg border border-board-200 bg-white px-2 py-1 text-xs text-board-700 outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:bg-board-100"
+                disabled={isActionPending("assign")}
+                className="max-w-[10rem] rounded-lg border border-board-200 bg-white px-2 py-1 text-xs text-board-700 outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-board-100"
                 title="Reassign task"
               >
                 {assigneeOptions.map((option) => (
@@ -260,21 +286,49 @@ const TaskCard: React.FC<TaskCardProps> = ({
           )}
         </div>
 
+        {isDraggable && (
+          <div className="hidden pt-2 [@media(hover:none)]:block">
+            <label
+              htmlFor={`task-move-${task._id}`}
+              className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-board-400"
+            >
+              <ArrowRightLeft className="h-3 w-3" />
+              Move to
+            </label>
+            <select
+              id={`task-move-${task._id}`}
+              value={task.status}
+              onChange={handleMoveChange}
+              disabled={isActionPending("move")}
+              className="w-full rounded-lg border border-board-200 bg-white px-2 py-1.5 text-xs text-board-700 outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-board-100"
+            >
+              <option value="To Do">To Do</option>
+              <option value="Doing">Doing</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+        )}
+
         {isEditing ? (
           <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={handleSaveEdit}
-              disabled={!editTitle.trim()}
+              disabled={!editTitle.trim() || isActionPending("edit")}
               className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Save className="h-3.5 w-3.5" />
-              Save
+              {isActionPending("edit") ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Save className="h-3.5 w-3.5" />
+              )}
+              {isActionPending("edit") ? "Saving..." : "Save"}
             </button>
             <button
               type="button"
               onClick={handleCancelEdit}
-              className="inline-flex items-center gap-1 rounded-lg border border-board-200 bg-white px-3 py-1.5 text-xs font-semibold text-board-600 transition-colors hover:bg-board-100 dark:bg-board-100 dark:hover:bg-board-200"
+              disabled={isActionPending("edit")}
+              className="inline-flex items-center gap-1 rounded-lg border border-board-200 bg-white px-3 py-1.5 text-xs font-semibold text-board-600 transition-colors hover:bg-board-100 dark:bg-board-100 dark:hover:bg-board-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <X className="h-3.5 w-3.5" />
               Cancel
@@ -287,20 +341,30 @@ const TaskCard: React.FC<TaskCardProps> = ({
                 <button
                   type="button"
                   onClick={() => onClaim(task)}
-                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700"
+                  disabled={isActionPending("claim")}
+                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Umbrella className="h-3.5 w-3.5" />
-                  Claim
+                  {isActionPending("claim") ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Umbrella className="h-3.5 w-3.5" />
+                  )}
+                  {isActionPending("claim") ? "Claiming..." : "Claim"}
                 </button>
               )}
               {canEditOrDelete && (
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-board-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-board-600 transition-colors hover:bg-board-100 dark:bg-board-100 dark:hover:bg-board-200"
+                  disabled={isActionPending("edit")}
+                  className="inline-flex items-center gap-1 rounded-lg border border-board-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-board-600 transition-colors hover:bg-board-100 dark:bg-board-100 dark:hover:bg-board-200 disabled:cursor-not-allowed disabled:opacity-50"
                   title="Edit task"
                 >
-                  <Pencil className="h-3.5 w-3.5" />
+                  {isActionPending("edit") ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Pencil className="h-3.5 w-3.5" />
+                  )}
                   Edit
                 </button>
               )}
@@ -309,10 +373,15 @@ const TaskCard: React.FC<TaskCardProps> = ({
               <button
                 type="button"
                 onClick={() => onDelete(task)}
-                className="inline-flex items-center gap-1 rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20"
+                disabled={isActionPending("delete")}
+                className="inline-flex items-center gap-1 rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
                 title="Delete task"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                {isActionPending("delete") ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
                 Delete
               </button>
             )}

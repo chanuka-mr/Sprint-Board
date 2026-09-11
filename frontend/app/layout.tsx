@@ -3,6 +3,7 @@ import React from "react";
 import "./globals.css";
 import AuthProvider from "../components/AuthProvider";
 import ThemeProvider from "../components/ThemeProvider";
+import ToastProvider from "../components/ToastProvider";
 import Navbar from "../components/Navbar";
 
 export const metadata: Metadata = {
@@ -37,8 +38,10 @@ export default function RootLayout({
       <body className="min-h-screen bg-board-100 font-sans text-board-900 antialiased transition-colors">
         <ThemeProvider>
           <AuthProvider>
-            <Navbar />
-            <main>{children}</main>
+            <ToastProvider>
+              <Navbar />
+              <main>{children}</main>
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

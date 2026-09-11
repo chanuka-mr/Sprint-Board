@@ -22,6 +22,13 @@ export type TaskStatus = "To Do" | "Doing" | "Done";
 
 export type TaskPriority = "low" | "medium" | "high";
 
+export type TaskActionType = "claim" | "assign" | "edit" | "delete" | "move";
+
+export interface PendingAction {
+  id: string;
+  type: TaskActionType;
+}
+
 export interface Task {
   _id: string;
   title: string;
