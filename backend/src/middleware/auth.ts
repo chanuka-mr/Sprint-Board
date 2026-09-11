@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import User, { IUser } from "../models/User";
+import { getJwtSecret } from "../config/env";
 
-const JWT_SECRET: string = process.env.JWT_SECRET || "dev_secret_change_me";
+const JWT_SECRET: string = getJwtSecret();
 
 export interface AuthRequest extends Request {
   user?: IUser;
@@ -58,6 +59,15 @@ export const protect = async (
       res.status(401).json({
         success: false,
         message: "User belonging to this token no longer exists.",
+        errors: null,
+      });
+      return;
+    }
+
+    if (decoded.tv !== user.tokenVersion) {
+      res.status(401).json({
+        success: false,
+        message: "Session is no longer valid. Please log in again.",
         errors: null,
       });
       return;

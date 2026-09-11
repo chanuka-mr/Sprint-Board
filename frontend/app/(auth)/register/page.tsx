@@ -51,6 +51,12 @@ const RegisterPage = () => {
         field: "password",
         message: "Password must be at least 8 characters long.",
       });
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      nextErrors.push({
+        field: "password",
+        message:
+          "Password must include an uppercase letter, a lowercase letter, and a number.",
+      });
     }
 
     if (confirmPassword !== password) {
@@ -190,7 +196,7 @@ const RegisterPage = () => {
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder="8+ chars, upper & lower case, number"
                 aria-invalid={Boolean(fieldError("password"))}
                 className={
                   fieldError("password")

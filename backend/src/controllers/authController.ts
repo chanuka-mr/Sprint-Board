@@ -3,10 +3,16 @@ import jwt, { SignOptions } from "jsonwebtoken";
 import User, { IUser, IUserSafe } from "../models/User";
 import { AppError } from "../middleware/error";
 import { AuthRequest } from "../middleware/auth";
+import { getJwtSecret, getJwtExpiresIn } from "../config/env";
+import { validatePasswordStrength } from "../utils/passwordPolicy";
+import {
+  getLoginLock,
+  recordLoginFailure,
+  clearLoginFailures,
+} from "../middleware/rateLimiter";
 
-const JWT_SECRET: string = process.env.JWT_SECRET || "dev_secret_change_me";
-const JWT_EXPIRES_IN: SignOptions["expiresIn"] =
-  (process.env.JWT_EXPIRES_IN as SignOptions["expiresIn"]) || "7d";
+const JWT_SECRET: string = getJwtSecret();
+const JWT_EXPIRES_IN: SignOptions["expiresIn"] = getJwtExpiresIn() as SignOptions["expiresIn"];
 
 interface LoginBody {
   email?: string;
@@ -19,8 +25,8 @@ interface RegisterBody {
   password?: string;
 }
 
-const signToken = (id: string): string => {
-  return jwt.sign({ id }, JWT_SECRET, {
+const signToken = (id: string, tokenVersion: number): string => {
+  return jwt.sign({ id, tv: tokenVersion }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   });
 };
@@ -46,8 +52,13 @@ export const register = async (
       throw new AppError("Name, email, and password are required.", 400);
     }
 
-    if (typeof password !== "string" || password.length < 8) {
-      throw new AppError("Password must be at least 8 characters long.", 400);
+    if (typeof password !== "string") {
+      throw new AppError("Password must be a string.", 400);
+    }
+
+    const passwordError = validatePasswordStrength(password);
+    if (passwordError) {
+      throw new AppError(passwordError, 400);
     }
 
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -62,7 +73,7 @@ export const register = async (
       role: "user",
     });
 
-    const token = signToken(user._id.toString());
+    const token = signToken(user._id.toString(), user.tokenVersion);
 
     res.status(201).json({
       success: true,
@@ -89,18 +100,45 @@ export const login = async (
       throw new AppError("Email and password are required.", 400);
     }
 
+    const lock = getLoginLock(email);
+    if (lock.locked) {
+      const minutes = Math.max(1, Math.ceil(lock.remainingMs / 60000));
+      throw new AppError(
+        `Too many failed attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+        429
+      );
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() });
 
     if (!user) {
+      const result = recordLoginFailure(email);
+      if (result.locked) {
+        const minutes = Math.max(1, Math.ceil(result.retryAfterMs / 60000));
+        throw new AppError(
+          `Too many failed attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+          429
+        );
+      }
       throw new AppError("Invalid credentials. Please try again.", 401);
     }
 
     const isPasswordMatch = await user.comparePassword(password);
     if (!isPasswordMatch) {
+      const result = recordLoginFailure(email);
+      if (result.locked) {
+        const minutes = Math.max(1, Math.ceil(result.retryAfterMs / 60000));
+        throw new AppError(
+          `Too many failed attempts. Please try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+          429
+        );
+      }
       throw new AppError("Invalid credentials. Please try again.", 401);
     }
 
-    const token = signToken(user._id.toString());
+    clearLoginFailures(email);
+
+    const token = signToken(user._id.toString(), user.tokenVersion);
 
     res.status(200).json({
       success: true,

@@ -41,6 +41,7 @@ const taskSchema = new Schema<ITask>(
       type: String,
       default: "",
       trim: true,
+      maxlength: [2000, "Description cannot exceed 2000 characters"],
     },
     status: {
       type: String,

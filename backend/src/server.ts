@@ -1,22 +1,39 @@
 import express, { Express } from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
 import mongoose from "mongoose";
 import connectDB from "./config/db";
+import { getFrontendUrl } from "./config/env";
 import { notFound, errorHandler } from "./middleware/error";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import taskRoutes from "./routes/taskRoutes";
 
-dotenv.config();
-
 const PORT: number = parseInt(process.env.PORT || "5000", 10);
 
 const app: Express = express();
 
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.set("trust proxy", 1);
+
+const allowedOrigins: string[] = [getFrontendUrl(), "http://localhost:3000"];
+
+app.use(helmet());
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error("Origin not allowed by CORS"));
+    },
+    credentials: false,
+  })
+);
+app.use(express.json({ limit: "10kb" }));
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(mongoSanitize());
 
 app.get("/", (_req, res) => {
   res.status(200).json({

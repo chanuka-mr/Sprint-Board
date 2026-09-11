@@ -251,12 +251,20 @@ Open **http://localhost:3000** — you will be redirected to `/login`.
 
 ### 3. First Login
 
-Log in as the seeded administrator:
+Log in as the administrator provisioned by the seed script (`npm run seed`). The seed
+reads the credentials from environment variables — **never hardcoded in the repo**:
 
-| Field | Value |
+| Variable | Description |
 |---|---|
-| Email | `admin@lesstaxi.com` |
-| Password | `Admin@123456` |
+| `ADMIN_EMAIL` | Admin account email |
+| `ADMIN_PASSWORD` | Admin account password (seed sets/rotates this) |
+
+Add both to `backend/.env` (gitignored) before running the seed. Example:
+
+```
+ADMIN_EMAIL=you@example.com
+ADMIN_PASSWORD=a-strong-unique-password
+```
 
 Then register a normal user via the **Register** link to test the user role experience.
 
@@ -272,6 +280,8 @@ Then register a normal user via the **Register** link to test the user role expe
 | `MONGODB_URI` | Yes | — | MongoDB connection string (Atlas/local) |
 | `JWT_SECRET` | Yes | — | Secret used to sign/verify JWTs |
 | `JWT_EXPIRES_IN` | No | `7d` | Token lifetime (`7d`, `24h`, etc.) |
+| `ADMIN_EMAIL` | Yes (seed) | — | Admin email used by `npm run seed` |
+| `ADMIN_PASSWORD` | Yes (seed) | — | Initial admin password set by `npm run seed` |
 
 ### Frontend `.env.local`
 
@@ -385,8 +395,8 @@ Deployed Backend API URL
 
 Administrator Login Credentials
 -------------------------------
-Email:    admin@lesstaxi.com
-Password: Admin@123456
+(Provided separately via secure channel — credentials are stored in
+environment variables, never in the repository)
 
 ============================================================
 ```

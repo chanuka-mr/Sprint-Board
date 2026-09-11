@@ -1,11 +1,8 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 import dns, { promises as dnsPromises } from "dns";
+import { getMongoUri } from "./env";
 
-dotenv.config();
-
-const MONGODB_URI: string =
-  process.env.MONGODB_URI || "mongodb://localhost:27017/sprint-board";
+const MONGODB_URI: string = getMongoUri();
 
 const FALLBACK_DNS_SERVERS = ["1.1.1.1", "8.8.8.8", "2001:4860:4860::8888"];
 

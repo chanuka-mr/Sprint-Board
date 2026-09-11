@@ -6,6 +6,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: "user" | "admin";
+  tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -47,6 +48,10 @@ const userSchema = new Schema<IUser>(
         message: "{VALUE} is not a valid role",
       },
       default: "user",
+    },
+    tokenVersion: {
+      type: Number,
+      default: 0,
     },
   },
   {

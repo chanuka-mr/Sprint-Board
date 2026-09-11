@@ -5,16 +5,24 @@ import User from "../models/User";
 
 dotenv.config();
 
-const ADMIN_EMAIL = "admin@lesstaxi.com";
-const ADMIN_PASSWORD = "Admin@123456";
-const ADMIN_NAME = "Sprint Board Admin";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+const ADMIN_NAME = process.env.ADMIN_NAME || "Sprint Board Admin";
 
 const seedAdmin = async (): Promise<void> => {
   try {
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      console.error(
+        "[ERROR] ADMIN_EMAIL and ADMIN_PASSWORD must be set. " +
+          "Add them to your .env file or environment (do not hardcode credentials in source)."
+      );
+      process.exit(1);
+    }
+
     console.log("Connecting to MongoDB...");
     await connectDB();
 
-    const existingAdmin = await User.findOne({ email: ADMIN_EMAIL });
+    const existingAdmin = await User.findOne({ email: ADMIN_EMAIL.toLowerCase() });
 
     if (existingAdmin) {
       console.log(
@@ -42,12 +50,7 @@ const seedAdmin = async (): Promise<void> => {
     }
 
     console.log("\nSeed completed successfully.");
-    console.log("\n=============================================");
-    console.log("Sprint Board - Administrator Credentials");
-    console.log("=============================================");
-    console.log(`  Email:    ${ADMIN_EMAIL}`);
-    console.log(`  Password: ${ADMIN_PASSWORD}`);
-    console.log("=============================================\n");
+    console.log("\nCredentials are read from environment variables.");
 
     await mongoose.disconnect();
     process.exit(0);
