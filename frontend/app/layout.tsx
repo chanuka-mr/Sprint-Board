@@ -8,7 +8,7 @@ import Navbar from "../components/Navbar";
 export const metadata: Metadata = {
   title: "Sprint Board — Task Management",
   description:
-    "A Trello-like kanban task management board with role-based access control.",
+    "A Trello-like kanban task management board.",
   icons: {
     icon: "/images/favicon.png",
   },
