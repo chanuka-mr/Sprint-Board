@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --board-50: 248 250 252;
+  --board-100: 241 245 249;
+  --board-200: 226 232 240;
+  --board-300: 203 213 225;
+  --board-400: 148 163 184;
+  --board-500: 100 116 139;
+  --board-600: 71 85 105;
+  --board-700: 51 65 85;
+  --board-800: 30 41 59;
+  --board-900: 15 23 42;
+  --board-background: rgb(var(--board-100));
+  color-scheme: light;
+}
+
+.dark {
+  --board-50: 15 23 42;
+  --board-100: 30 41 59;
+  --board-200: 51 65 85;
+  --board-300: 71 85 105;
+  --board-400: 100 116 139;
+  --board-500: 148 163 184;
+  --board-600: 203 213 225;
+  --board-700: 226 232 240;
+  --board-800: 241 245 249;
+  --board-900: 248 250 252;
+  --board-background: rgb(var(--board-100));
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--board-background);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background-color: #334155;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: #475569;
+}
